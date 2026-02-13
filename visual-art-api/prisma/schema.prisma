@@ -70,22 +70,27 @@ enum Gender {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole @default(CUSTOMER)
-  phone     String?
-  document  String?  @unique
+  id       String   @id @default(cuid())
+  name     String
+  email    String?  @unique
+  password String? // pode ser null se ERP only
+  role     UserRole @default(CUSTOMER)
+
+  isActive  Boolean @default(true)
+  isErpOnly Boolean @default(false)
+
+  phone    String?
+  document String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   addresses Address[]
   orders    Order[]
-
-  profile CustomerProfile?
+  profile   CustomerProfile?
 
   @@index([role])
+  @@index([isErpOnly])
 }
 
 model Address {

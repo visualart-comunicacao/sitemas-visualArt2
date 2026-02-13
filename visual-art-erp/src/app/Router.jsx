@@ -9,6 +9,8 @@ import AuthLayout from '@/app/layouts/AuthLayout'
 import LoginPage from '@/modules/auth/pages/LoginPage'
 import VisualChatPage from '@/modules/visual-chat/pages/VisualChatPage'
 import CustomersListPage from '@/modules/customers/pages/CustomersListPage'
+import QuotesListPage from '@/modules/quotes/pages/QuotesListPage'
+import QuotesEditPage from '@/modules/quotes/pages/QuotesEditPage'
 // Pages (vamos criar agora “placeholder” simples)
 function DashboardPage() {
   return <div>Dashboard</div>
@@ -16,9 +18,7 @@ function DashboardPage() {
 function ProductsListPage() {
   return <div>Produtos</div>
 }
-function OrdersListPage() {
-  return <div>Orçamentos/Pedidos</div>
-}
+
 function AdminDashboardPage() {
   return <div>Admin</div>
 }
@@ -45,7 +45,10 @@ export default function Router() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/customers" element={<CustomersListPage />} />
         <Route path="/catalog/products" element={<ProductsListPage />} />
-        <Route path="/orders" element={<OrdersListPage />} />
+
+        <Route path="/quotes" element={<QuotesListPage />} />
+        <Route path="/quotes/new" element={<QuotesEditPage mode="create" />} />
+        <Route path="/quotes/:id/edit" element={<QuotesEditPage mode="edit" />} />
 
         <Route path="/visual-chat" element={<VisualChatPage />} />
 

@@ -15,7 +15,6 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import { createCustomer, getCustomer, updateCustomer } from '@/api/customers.api'
-import { normalizeCustomerResponse } from '../customers.mapper'
 
 const { Text } = Typography
 
@@ -31,7 +30,6 @@ const GENDER_OPTIONS = [
   { label: 'Outro', value: 'OTHER' },
 ]
 
-// formatadores leves (sem lib)
 function onlyDigits(v = '') {
   return String(v).replace(/\D/g, '')
 }
@@ -65,6 +63,16 @@ function maskCnpj(v = '') {
   return `${p1}.${p2}.${p3}/${p4}-${p5}`
 }
 
+function extractApiMsg(err) {
+  // prioriza mensagens do backend
+  const m = err?.response?.data?.message || err?.response?.data?.error
+  if (m) return m
+  // fallback
+  if (err?.response?.status === 409)
+    return 'Já existe um cliente com esses dados (email/documento/CPF/CNPJ).'
+  return 'Erro ao salvar cliente.'
+}
+
 export default function CustomerModal({ open, mode, customerId, onClose, onSuccess }) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -80,63 +88,64 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
         setLoading(true)
 
         if (isEdit && customerId) {
-          const raw = await getCustomer(customerId)
-          const { user, profile, addresses } = normalizeCustomerResponse(raw)
-          const addr = (addresses || []).find((a) => a.isDefault) || addresses?.[0] || null
+          const data = await getCustomer(customerId)
+
+          // esperando retorno com include profile + addresses ou address
+          const addr = (data?.addresses || []).find((a) => a.isDefault) || data?.address || null
 
           form.setFieldsValue({
-            // USER
-            name: user?.name || '',
-            email: user?.email || null,
-            phone: user?.phone || null,
-            document: user?.document || null,
-            isActive: user?.isActive ?? true,
-            isErpOnly: user?.isErpOnly ?? false,
+            // raiz
+            name: data?.name,
+            phone: data?.phone,
+            email: data?.email,
+            document: data?.document,
+            isActive: data?.isActive ?? true,
 
-            // PROFILE
-            profileType: profile?.type || 'PERSON',
-            fullName: profile?.fullName || null,
-            birthDate: profile?.birthDate ? dayjs(profile.birthDate) : null,
-            gender: profile?.gender || 'NOT_INFORMED',
-            cpf: profile?.cpf || null,
-            rg: profile?.rg || null,
+            // profile
+            type: data?.profile?.type ?? data?.type ?? 'PERSON',
 
-            companyName: profile?.companyName || null,
-            tradeName: profile?.tradeName || null,
-            cnpj: profile?.cnpj || null,
-            stateTaxId: profile?.stateTaxId || null,
-            municipalTaxId: profile?.municipalTaxId || null,
+            // PF
+            fullName: data?.profile?.fullName ?? data?.fullName,
+            birthDate:
+              data?.profile?.birthDate || data?.birthDate
+                ? dayjs(data.profile?.birthDate || data.birthDate)
+                : null,
+            gender: data?.profile?.gender ?? data?.gender ?? 'NOT_INFORMED',
+            cpf: data?.profile?.cpf ?? data?.cpf,
+            rg: data?.profile?.rg ?? data?.rg,
 
-            phone2: profile?.phone2 || null,
-            whatsapp: profile?.whatsapp ?? true,
+            // PJ
+            cnpj: data?.profile?.cnpj ?? data?.cnpj,
+            companyName: data?.profile?.companyName ?? data?.companyName,
+            tradeName: data?.profile?.tradeName ?? data?.tradeName,
+            stateTaxId: data?.profile?.stateTaxId ?? data?.stateTaxId,
+            municipalTaxId: data?.profile?.municipalTaxId ?? data?.municipalTaxId,
 
-            marketingOptIn: profile?.marketingOptIn ?? false,
-            termsAcceptedAt: profile?.termsAcceptedAt
-              ? dayjs(profile.termsAcceptedAt).format('DD/MM/YYYY HH:mm')
-              : null,
+            // contato / lgpd / controle
+            phone2: data?.profile?.phone2 ?? data?.phone2,
+            whatsapp: data?.profile?.whatsapp ?? data?.whatsapp ?? true,
+            marketingOptIn: data?.profile?.marketingOptIn ?? data?.marketingOptIn ?? false,
+            notes: data?.profile?.notes ?? data?.notes,
+            isBlocked: data?.profile?.isBlocked ?? data?.isBlocked ?? false,
 
-            notes: profile?.notes || null,
-            isBlocked: profile?.isBlocked ?? false,
-
-            // ADDRESS (1 principal)
-            addressType: addr?.type || 'SHIPPING',
-            addressLabel: addr?.label || null,
-            addressRecipient: addr?.recipient || null,
-            addressZipCode: addr?.zipCode || null,
-            addressStreet: addr?.street || null,
-            addressNumber: addr?.number || null,
-            addressComplement: addr?.complement || null,
-            addressDistrict: addr?.district || null,
-            addressCity: addr?.city || null,
-            addressState: addr?.state || null,
-            addressReference: addr?.reference || null,
+            // address
+            addressType: addr?.type ?? 'SHIPPING',
+            addressLabel: addr?.label,
+            addressRecipient: addr?.recipient,
+            addressZipCode: addr?.zipCode ? maskCep(addr.zipCode) : null,
+            addressStreet: addr?.street,
+            addressNumber: addr?.number,
+            addressComplement: addr?.complement,
+            addressDistrict: addr?.district,
+            addressCity: addr?.city,
+            addressState: addr?.state,
+            addressReference: addr?.reference,
           })
         } else {
           form.resetFields()
           form.setFieldsValue({
             isActive: true,
-            isErpOnly: false,
-            profileType: 'PERSON',
+            type: 'PERSON',
             gender: 'NOT_INFORMED',
             whatsapp: true,
             marketingOptIn: false,
@@ -156,64 +165,62 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
 
   async function handleSubmit() {
     try {
-      const values = await form.validateFields()
+      const v = await form.validateFields()
       setLoading(true)
 
-      // Payload alinhado ao schema (User + CustomerProfile + Address default)
+      // payload CHAPADO como sua API espera
       const payload = {
-        name: values.name,
-        phone: values.phone || null,
-        email: values.email || null,
-        document: values.document || null,
-        isActive: values.isActive ?? true,
+        name: v.name,
+        phone: v.phone || null,
+        email: v.email || null,
+        document: v.document || null,
+        isActive: v.isActive ?? true,
 
-        type: values.profileType, // PERSON | BUSINESS
+        type: v.type,
 
         // PF
-        fullName: values.fullName || null,
-        birthDate: values.birthDate ? values.birthDate.toISOString() : null,
-        gender: values.gender || 'NOT_INFORMED',
-        cpf: values.cpf ? onlyDigits(values.cpf) : null,
-        rg: values.rg || null,
+        fullName: v.fullName || null,
+        birthDate: v.birthDate ? v.birthDate.toISOString() : null,
+        gender: v.gender || 'NOT_INFORMED',
+        cpf: v.cpf ? onlyDigits(v.cpf) : null,
+        rg: v.rg || null,
 
         // PJ
-        cnpj: values.cnpj ? onlyDigits(values.cnpj) : null,
-        companyName: values.companyName || null,
-        tradeName: values.tradeName || null,
-        stateTaxId: values.stateTaxId || null,
-        municipalTaxId: values.municipalTaxId || null,
+        cnpj: v.cnpj ? onlyDigits(v.cnpj) : null,
+        companyName: v.companyName || null,
+        tradeName: v.tradeName || null,
+        stateTaxId: v.stateTaxId || null,
+        municipalTaxId: v.municipalTaxId || null,
 
         // contato / lgpd / controle
-        phone2: values.phone2 || null,
-        whatsapp: !!values.whatsapp,
-        marketingOptIn: !!values.marketingOptIn,
-        notes: values.notes || null,
-        isBlocked: !!values.isBlocked,
+        phone2: v.phone2 || null,
+        whatsapp: !!v.whatsapp,
+        marketingOptIn: !!v.marketingOptIn,
+        notes: v.notes || null,
+        isBlocked: !!v.isBlocked,
 
-        // endereço (envia só se tiver CEP)
-        address: values.addressZipCode
+        address: v.addressZipCode
           ? {
-              type: values.addressType || 'SHIPPING',
+              type: v.addressType || 'SHIPPING',
               isDefault: true,
-              label: values.addressLabel || null,
-              recipient: values.addressRecipient || null,
-              zipCode: onlyDigits(values.addressZipCode),
-              street: values.addressStreet,
-              number: values.addressNumber,
-              complement: values.addressComplement || null,
-              district: values.addressDistrict,
-              city: values.addressCity,
-              state: values.addressState,
-              reference: values.addressReference || null,
+              label: v.addressLabel || null,
+              recipient: v.addressRecipient || null,
+              zipCode: onlyDigits(v.addressZipCode),
+              street: v.addressStreet,
+              number: v.addressNumber,
+              complement: v.addressComplement || null,
+              district: v.addressDistrict,
+              city: v.addressCity,
+              state: v.addressState,
+              reference: v.addressReference || null,
             }
-          : null,
+          : undefined,
       }
 
       if (isEdit) {
         await updateCustomer(customerId, payload)
         message.success('Cliente atualizado!')
       } else {
-        console.log(payload)
         await createCustomer(payload)
         message.success('Cliente criado!')
       }
@@ -221,8 +228,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
       onSuccess?.()
       onClose()
     } catch (err) {
-      if (err?.errorFields) return // validação do Form
-      message.error(err?.response?.data?.message || 'Erro ao salvar cliente.')
+      if (err?.errorFields) return
+      message.error(extractApiMsg(err))
     } finally {
       setLoading(false)
     }
@@ -234,10 +241,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
       title={title}
       onCancel={onClose}
       width={980}
-      destroyOnHidden
-      mask={{
-        closable: false,
-      }}
+      destroyOnClose
+      maskClosable={false}
       footer={
         <Space>
           <Button onClick={onClose}>Cancelar</Button>
@@ -246,16 +251,14 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
           </Button>
         </Space>
       }
-      styles={{
-        body: { maxHeight: '72vh', overflow: 'auto', paddingTop: 8 },
-      }}
+      styles={{ body: { maxHeight: '72vh', overflow: 'auto', paddingTop: 8 } }}
     >
       <Form form={form} layout="vertical" requiredMark={false}>
         <Tabs
-          defaultActiveKey="user"
+          defaultActiveKey="base"
           items={[
             {
-              key: 'user',
+              key: 'base',
               label: 'Dados',
               children: (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -264,7 +267,7 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     label="Nome"
                     rules={[{ required: true, message: 'Informe o nome' }]}
                   >
-                    <Input placeholder="Nome do cliente" />
+                    <Input />
                   </Form.Item>
 
                   <Form.Item
@@ -272,30 +275,20 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     label="E-mail (opcional)"
                     rules={[{ type: 'email', message: 'E-mail inválido' }]}
                   >
-                    <Input placeholder="email@dominio.com" />
+                    <Input />
                   </Form.Item>
 
                   <Form.Item name="phone" label="Telefone (opcional)">
-                    <Input placeholder="(00) 00000-0000" />
+                    <Input />
                   </Form.Item>
 
                   <Form.Item name="document" label="Documento (opcional)">
-                    <Input placeholder="Uso interno (evite duplicar CPF/CNPJ)" />
+                    <Input />
                   </Form.Item>
 
-                  <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-                    <Form.Item name="isActive" label="Ativo" valuePropName="checked">
-                      <Switch />
-                    </Form.Item>
-                    <Form.Item name="isErpOnly" label="Somente ERP" valuePropName="checked">
-                      <Switch />
-                    </Form.Item>
-                  </div>
-
-                  <Text type="secondary" style={{ gridColumn: '1 / -1' }}>
-                    “Somente ERP” = cliente sem login do e-commerce (password pode ficar null no
-                    backend).
-                  </Text>
+                  <Form.Item name="isActive" label="Ativo" valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
                 </div>
               ),
             },
@@ -304,15 +297,15 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
               label: 'Perfil',
               children: (
                 <div style={{ display: 'grid', gap: 12 }}>
-                  <Form.Item name="profileType" label="Tipo">
+                  <Form.Item name="type" label="Tipo">
                     <Segmented options={CUSTOMER_TYPES} />
                   </Form.Item>
 
-                  <Form.Item noStyle shouldUpdate={(p, c) => p.profileType !== c.profileType}>
+                  <Form.Item noStyle shouldUpdate={(p, c) => p.type !== c.type}>
                     {({ getFieldValue }) => {
-                      const type = getFieldValue('profileType')
+                      const t = getFieldValue('type')
 
-                      if (type === 'BUSINESS') {
+                      if (t === 'BUSINESS') {
                         return (
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                             <Form.Item
@@ -322,7 +315,6 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                             >
                               <Input />
                             </Form.Item>
-
                             <Form.Item name="tradeName" label="Nome fantasia">
                               <Input />
                             </Form.Item>
@@ -333,8 +325,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                               rules={[
                                 { required: true, message: 'Informe o CNPJ' },
                                 {
-                                  validator: (_, v) => {
-                                    const d = onlyDigits(v || '')
+                                  validator: (_, val) => {
+                                    const d = onlyDigits(val || '')
                                     if (!d) return Promise.resolve()
                                     return d.length === 14
                                       ? Promise.resolve()
@@ -344,7 +336,6 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                               ]}
                             >
                               <Input
-                                placeholder="00.000.000/0000-00"
                                 onChange={(e) =>
                                   form.setFieldValue('cnpj', maskCnpj(e.target.value))
                                 }
@@ -354,7 +345,6 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                             <Form.Item name="stateTaxId" label="Inscrição Estadual (opcional)">
                               <Input />
                             </Form.Item>
-
                             <Form.Item name="municipalTaxId" label="Inscrição Municipal (opcional)">
                               <Input />
                             </Form.Item>
@@ -373,8 +363,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                             label="CPF (opcional)"
                             rules={[
                               {
-                                validator: (_, v) => {
-                                  const d = onlyDigits(v || '')
+                                validator: (_, val) => {
+                                  const d = onlyDigits(val || '')
                                   if (!d) return Promise.resolve()
                                   return d.length === 11
                                     ? Promise.resolve()
@@ -384,7 +374,6 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                             ]}
                           >
                             <Input
-                              placeholder="000.000.000-00"
                               onChange={(e) => form.setFieldValue('cpf', maskCpf(e.target.value))}
                             />
                           </Form.Item>
@@ -393,7 +382,7 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                             <Input />
                           </Form.Item>
 
-                          <Form.Item name="birthDate" label="Data de nascimento (opcional)">
+                          <Form.Item name="birthDate" label="Nascimento (opcional)">
                             <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                           </Form.Item>
 
@@ -412,6 +401,9 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     <Form.Item name="isBlocked" label="Bloqueado" valuePropName="checked">
                       <Switch />
                     </Form.Item>
+                    <Form.Item name="marketingOptIn" label="Marketing" valuePropName="checked">
+                      <Switch />
+                    </Form.Item>
                   </div>
 
                   <Form.Item name="phone2" label="Telefone 2 (opcional)">
@@ -421,6 +413,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                   <Form.Item name="notes" label="Observações (opcional)">
                     <Input.TextArea rows={3} />
                   </Form.Item>
+
+                  <Text type="secondary">PF/PJ são validados conforme o tipo escolhido.</Text>
                 </div>
               ),
             },
@@ -429,7 +423,7 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
               label: 'Endereço',
               children: (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <Form.Item name="addressType" label="Tipo de endereço">
+                  <Form.Item name="addressType" label="Tipo">
                     <Select
                       options={[
                         { label: 'Entrega (SHIPPING)', value: 'SHIPPING' },
@@ -439,7 +433,7 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                   </Form.Item>
 
                   <Form.Item name="addressLabel" label="Etiqueta (opcional)">
-                    <Input placeholder="Ex: Casa / Empresa" />
+                    <Input placeholder="Casa / Matriz..." />
                   </Form.Item>
 
                   <Form.Item name="addressRecipient" label="Destinatário (opcional)">
@@ -451,8 +445,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     label="CEP (opcional)"
                     rules={[
                       {
-                        validator: (_, v) => {
-                          const d = onlyDigits(v || '')
+                        validator: (_, val) => {
+                          const d = onlyDigits(val || '')
                           if (!d) return Promise.resolve()
                           return d.length === 8
                             ? Promise.resolve()
@@ -462,7 +456,6 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     ]}
                   >
                     <Input
-                      placeholder="00000-000"
                       onChange={(e) =>
                         form.setFieldValue('addressZipCode', maskCep(e.target.value))
                       }
@@ -470,46 +463,18 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                   </Form.Item>
 
                   <Form.Item
-                    name="addressState"
-                    label="UF"
-                    rules={[
-                      { required: !!form.getFieldValue('addressZipCode'), message: 'Informe UF' },
-                    ]}
-                  >
-                    <Input placeholder="SP" maxLength={2} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="addressCity"
-                    label="Cidade"
-                    rules={[
-                      {
-                        required: !!form.getFieldValue('addressZipCode'),
-                        message: 'Informe cidade',
-                      },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="addressDistrict"
-                    label="Bairro"
-                    rules={[
-                      {
-                        required: !!form.getFieldValue('addressZipCode'),
-                        message: 'Informe bairro',
-                      },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
-
-                  <Form.Item
                     name="addressStreet"
                     label="Rua"
                     rules={[
-                      { required: !!form.getFieldValue('addressZipCode'), message: 'Informe rua' },
+                      ({ getFieldValue }) => ({
+                        validator: (_, val) => {
+                          const hasCep = !!onlyDigits(getFieldValue('addressZipCode') || '')
+                          if (!hasCep) return Promise.resolve()
+                          return val
+                            ? Promise.resolve()
+                            : Promise.reject(new Error('Informe a rua'))
+                        },
+                      }),
                     ]}
                   >
                     <Input />
@@ -519,10 +484,15 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                     name="addressNumber"
                     label="Número"
                     rules={[
-                      {
-                        required: !!form.getFieldValue('addressZipCode'),
-                        message: 'Informe número',
-                      },
+                      ({ getFieldValue }) => ({
+                        validator: (_, val) => {
+                          const hasCep = !!onlyDigits(getFieldValue('addressZipCode') || '')
+                          if (!hasCep) return Promise.resolve()
+                          return val
+                            ? Promise.resolve()
+                            : Promise.reject(new Error('Informe o número'))
+                        },
+                      }),
                     ]}
                   >
                     <Input />
@@ -530,6 +500,58 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
 
                   <Form.Item name="addressComplement" label="Complemento (opcional)">
                     <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="addressDistrict"
+                    label="Bairro"
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator: (_, val) => {
+                          const hasCep = !!onlyDigits(getFieldValue('addressZipCode') || '')
+                          if (!hasCep) return Promise.resolve()
+                          return val
+                            ? Promise.resolve()
+                            : Promise.reject(new Error('Informe o bairro'))
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="addressCity"
+                    label="Cidade"
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator: (_, val) => {
+                          const hasCep = !!onlyDigits(getFieldValue('addressZipCode') || '')
+                          if (!hasCep) return Promise.resolve()
+                          return val
+                            ? Promise.resolve()
+                            : Promise.reject(new Error('Informe a cidade'))
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="addressState"
+                    label="UF"
+                    rules={[
+                      ({ getFieldValue }) => ({
+                        validator: (_, val) => {
+                          const hasCep = !!onlyDigits(getFieldValue('addressZipCode') || '')
+                          if (!hasCep) return Promise.resolve()
+                          return val ? Promise.resolve() : Promise.reject(new Error('Informe UF'))
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input maxLength={2} placeholder="SP" />
                   </Form.Item>
 
                   <Form.Item
@@ -541,23 +563,8 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
                   </Form.Item>
 
                   <Text type="secondary" style={{ gridColumn: '1 / -1' }}>
-                    Se você não preencher CEP, o endereço não será enviado no payload.
+                    Se preencher CEP, o restante do endereço vira obrigatório.
                   </Text>
-                </div>
-              ),
-            },
-            {
-              key: 'lgpd',
-              label: 'LGPD',
-              children: (
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <Form.Item name="marketingOptIn" label="Marketing Opt-in" valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item name="termsAcceptedAt" label="Termos aceitos em (somente leitura)">
-                    <Input disabled placeholder="—" />
-                  </Form.Item>
                 </div>
               ),
             },

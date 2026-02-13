@@ -118,4 +118,67 @@ export const QuotesService = {
 
     return { total, data };
   },
+
+  async convertToSale(quoteId, opts = {}) {
+    return prisma.$transaction(async (tx) => {
+      // 1) Carrega quote
+      const quote = await tx.order.findFirst({
+        where: { id: quoteId, type: 'QUOTE' },
+        include: { items: true },
+      });
+      if (!quote) throw notFound('Quote not found');
+
+      // 2) Impede converter duas vezes (se tiver o sourceQuoteId)
+      const existingSale = await tx.order.findFirst({
+        where: { sourceQuoteId: quoteId },
+        select: { id: true, code: true },
+      });
+      if (existingSale) {
+        throw conflict(`Quote already converted to sale (${existingSale.code})`);
+      }
+
+      // 3) Gera código PED
+      const saleCode = await nextOrderCode(tx, 'PED');
+
+      // 4) Cria SALE
+      const sale = await tx.order.create({
+        data: {
+          userId: quote.userId,
+          code: saleCode,
+          type: 'SALE',
+          status: opts.saleStatus ?? 'PENDING',
+          paymentStatus: 'UNPAID',
+          totalCents: quote.totalCents,
+
+          // ✅ link da conversão
+          sourceQuoteId: quote.id,
+
+          // opcional: se você tiver campos tipo notes no Order, use aqui
+          // notes: opts.notes ?? null,
+        },
+      });
+
+      // 5) Copia itens (snapshot)
+      if (quote.items.length > 0) {
+        await tx.orderItem.createMany({
+          data: quote.items.map((it) => ({
+            orderId: sale.id,
+            productId: it.productId,
+            name: it.name,
+            priceCents: it.priceCents,
+            quantity: it.quantity,
+            width: it.width,
+            height: it.height,
+            optionIds: it.optionIds,
+          })),
+        });
+      }
+
+      // 6) Retorna sale completa
+      return tx.order.findUnique({
+        where: { id: sale.id },
+        include: { items: true },
+      });
+    });
+  },
 };

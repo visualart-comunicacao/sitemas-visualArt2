@@ -17,6 +17,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pt-br'
 import { useAuth } from '@/store/auth/AuthContext'
+import '../../shared/styles/responsive.css'
 
 dayjs.locale('pt-br')
 
@@ -30,6 +31,7 @@ function useSelectedKey() {
   if (pathname.startsWith('/orders')) return 'orders'
   if (pathname.startsWith('/admin')) return 'admin'
   if (pathname.startsWith('/visual-chat')) return 'visual-chat'
+  if (pathname.startsWith('/quotes')) return 'orders' // ou 'quotes'
   return 'dashboard'
 }
 
@@ -69,8 +71,8 @@ export default function AppLayout() {
       {
         key: 'orders',
         icon: <FileTextOutlined />,
-        label: 'Orçamentos/Pedidos',
-        onClick: () => navigate('/orders'),
+        label: 'Orçamentos',
+        onClick: () => navigate('/quotes'),
       },
       {
         key: 'visual-chat',
@@ -280,6 +282,8 @@ export default function AppLayout() {
               padding: 16,
               minHeight: 'calc(100vh - 64px - 32px)',
               boxShadow: '0 10px 28px rgba(6,108,71,0.06)',
+              minWidth: 0, // ✅ permite o conteúdo encolher
+              overflow: 'hidden', // ✅ evita “vazar” horizontal
             }}
           >
             <Outlet />

@@ -20,4 +20,14 @@ export const QuotesController = {
       next(e);
     }
   },
+
+  async convert(req, res, next) {
+    try {
+      const quoteId = req.validated.params.id;
+      const sale = await QuotesService.convertToSale(quoteId, req.validated.body ?? {});
+      res.status(201).json(sale);
+    } catch (e) {
+      next(e);
+    }
+  },
 };

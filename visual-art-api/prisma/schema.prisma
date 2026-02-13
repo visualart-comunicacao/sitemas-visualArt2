@@ -263,8 +263,19 @@ model Order {
   approvedAt DateTime?
   canceledAt DateTime?
 
+  // ✅ Rastreio QUOTE -> SALE (recomendado)
+  // Na SALE: sourceQuoteId = ID do QUOTE original
+  // No QUOTE: saleFromQuote aponta para a SALE gerada
+  sourceQuoteId String? @unique
+  sourceQuote   Order?  @relation("QuoteToSale", fields: [sourceQuoteId], references: [id])
+  saleFromQuote Order?  @relation("QuoteToSale")
+
   user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   items OrderItem[]
+
+  // ✅ Nomes mais consistentes (opcional, mas eu recomendo)
+  payments  Payment[]
+  workOrder WorkOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -294,8 +305,9 @@ model OrderItem {
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  WorkOrderItem WorkOrderItem[]
 
   @@index([orderId])
   @@index([productId])
@@ -355,4 +367,78 @@ model Sequence {
 
   @@unique([key, year])
   @@index([year])
+}
+
+enum WorkOrderStatus {
+  OPEN
+  IN_PRODUCTION
+  WAITING_CUSTOMER
+  READY
+  DELIVERED
+  CANCELED
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  BOLETO
+  TRANSFER
+  OTHER
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String
+  amountCents Int
+  method      PaymentMethod
+  paidAt      DateTime      @default(now())
+  notes       String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([paidAt])
+  @@index([method])
+}
+
+model WorkOrder {
+  id      String          @id @default(cuid())
+  code    String          @unique // OS-2026-000001
+  orderId String          @unique
+  status  WorkOrderStatus @default(OPEN)
+
+  dueAt         DateTime?
+  priority      Int       @default(0) // 0 normal, 1 urgente etc.
+  instructions  String?
+  internalNotes String?
+
+  order Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  items WorkOrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model WorkOrderItem {
+  id          String @id @default(cuid())
+  workOrderId String
+  orderItemId String
+
+  // snapshot produção (pode evoluir para arquivos, prova, etc.)
+  status WorkOrderStatus @default(OPEN)
+  notes  String?
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([workOrderId])
+  @@index([orderItemId])
 }

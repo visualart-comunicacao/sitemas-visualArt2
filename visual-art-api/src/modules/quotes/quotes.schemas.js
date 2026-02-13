@@ -26,3 +26,17 @@ export const QuotesListQuerySchema = z.object({
     pageSize: z.string().optional(),
   }),
 });
+
+export const QuoteConvertSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z
+    .object({
+      // opcional: forçar status inicial da venda
+      saleStatus: z.enum(['PENDING', 'PAID', 'CANCELED', 'SHIPPED', 'DELIVERED']).optional(),
+      // opcional: copiar observação extra
+      notes: z.string().optional().nullable(),
+    })
+    .optional(),
+});

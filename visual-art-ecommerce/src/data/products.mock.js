@@ -1,0 +1,78 @@
+export const CATEGORIES = [
+  { key: "ALL", label: "Todos", emoji: "🟢" },
+  { key: "BANNERS", label: "Banners", emoji: "🎨" },
+  { key: "PLACAS", label: "Placas", emoji: "🧾" },
+  { key: "CANECA", label: "Canecas", emoji: "☕" },
+  { key: "BONES", label: "Bonés", emoji: "🧢" },
+  { key: "ADESIVOS", label: "Adesivos", emoji: "🏷️" },
+  { key: "CAMISETAS", label: "Camisetas", emoji: "👕" },
+  { key: "PERSONALIZADOS", label: "Camisetas", emoji: "👕" },
+];
+
+export const PRODUCTS = [
+  {
+    id: "banner-lona-440g",
+    category: "BANNERS",
+    categoryLabel: "Banners",
+    title: "Banner Lona 440g",
+    desc: "Impressão digital de alta qualidade",
+    icon: "🎨",
+    featured: true,
+    priceFrom: 39.9,
+    images: [
+      "https://via.placeholder.com/900x600?text=Banner+Lona+440g",
+      "https://via.placeholder.com/900x600?text=Acabamento+Ilh%C3%B3s",
+    ],
+    specs: [
+      { label: "Material", value: "Lona 440g" },
+      { label: "Uso", value: "Interno/Externo" },
+      { label: "Acabamento", value: "Bastão / Ilhós" },
+      { label: "Prazo", value: "2 a 5 dias úteis" },
+    ],
+  },
+  {
+    id: "banner-rollup",
+    category: "BANNERS",
+    categoryLabel: "Banners",
+    title: "Banner Roll-Up",
+    desc: "Estrutura portátil inclusa",
+    icon: "📣",
+    priceFrom: 189.9,
+    images: ["https://via.placeholder.com/900x600?text=Banner+Roll-Up"],
+    specs: [
+      { label: "Estrutura", value: "Alumínio (inclusa)" },
+      { label: "Tamanho", value: "80x200 / 100x200" },
+      { label: "Prazo", value: "3 a 7 dias úteis" },
+    ],
+  },
+  {
+    id: "placa-pvc",
+    category: "PLACAS",
+    categoryLabel: "Placas",
+    title: "Placa PVC",
+    desc: "Ideal para sinalização interna",
+    icon: "🧾",
+    priceFrom: 24.9,
+    images: ["https://via.placeholder.com/900x600?text=Placa+PVC"],
+    specs: [
+      { label: "Material", value: "PVC expandido" },
+      { label: "Espessura", value: "2mm / 3mm / 5mm" },
+      { label: "Uso", value: "Interno" },
+    ],
+  },
+  {
+    id: "adesivo-vinil",
+    category: "ADESIVOS",
+    categoryLabel: "Adesivos",
+    title: "Adesivo Vinil",
+    desc: "Resistente à água e ao sol",
+    icon: "🏷️",
+    priceFrom: 9.9,
+    images: ["https://via.placeholder.com/900x600?text=Adesivo+Vinil"],
+    specs: [
+      { label: "Laminação", value: "Opcional" },
+      { label: "Uso", value: "Interno/Externo" },
+      { label: "Corte", value: "Reto / Especial" },
+    ],
+  },
+];

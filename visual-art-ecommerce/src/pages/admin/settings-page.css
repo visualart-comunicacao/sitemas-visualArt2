@@ -1,0 +1,61 @@
+.settings-page {
+  padding: 16px;
+}
+
+.settings-header {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-card {
+  border-radius: 16px;
+}
+
+.settings-subcard {
+  border-radius: 14px;
+}
+
+.settings-logoBox {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-logoPlaceholder {
+  height: 140px;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.settings-logoImg {
+  height: 140px;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.settings-logoActions {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .settings-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .settings-actions {
+    justify-content: flex-end;
+  }
+}

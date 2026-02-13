@@ -1,0 +1,14 @@
+.ac__card {
+  border-radius: 18px !important;
+  box-shadow: 0 18px 50px rgba(2, 44, 34, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.ac__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}

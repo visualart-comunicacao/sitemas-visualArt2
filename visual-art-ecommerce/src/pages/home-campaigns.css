@@ -1,0 +1,24 @@
+.home-hero {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.home-hero img {
+  width: 100%;
+  height: clamp(160px, 24vw, 340px);
+  object-fit: cover;
+  display: block;
+}
+
+.home-promos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-promoCard { border-radius: 16px; overflow: hidden; }
+.home-promoImg { aspect-ratio: 1 / 1; object-fit: cover; width: 100%; }
+
+@media (max-width: 992px) { .home-promos { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .home-promos { grid-template-columns: repeat(2, 1fr); } }

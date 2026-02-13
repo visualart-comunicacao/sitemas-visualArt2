@@ -1,0 +1,50 @@
+.ad__header {
+  margin-bottom: 14px;
+}
+
+.ad__kpi,
+.ad__card {
+  border-radius: 18px !important;
+  box-shadow: 0 18px 50px rgba(2, 44, 34, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.ad__kpiRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.ad__kpiIcon {
+  font-size: 22px;
+  opacity: 0.7;
+}
+
+.ad__alerts {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ad__alertRow {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.ad__alertValue {
+  min-width: 24px;
+  text-align: right;
+}
+
+.ad__alertHint {
+  margin-top: 6px;
+}

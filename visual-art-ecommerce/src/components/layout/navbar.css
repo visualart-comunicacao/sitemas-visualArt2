@@ -1,0 +1,63 @@
+.va-header {
+  background: #fff;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  padding: 0;
+  height: 72px;
+  line-height: 72px;
+}
+
+.va-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 72px;
+  padding: 0 16px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.va-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.va-logoMark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+
+  background: #22c55e; /* verde parecido */
+  color: #fff;
+  font-weight: 800;
+}
+
+.va-logoText {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.va-center {
+  display: flex;
+  justify-content: center;
+}
+
+.va-menu {
+  border-bottom: none !important;
+  justify-content: center;
+  min-width: 360px;
+}
+
+.va-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}

@@ -1,0 +1,8 @@
+.admin-campaigns { padding: 16px; }
+.admin-campaigns__header { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; }
+.admin-campaigns__card { border-radius: 16px; }
+.muted { color: rgba(0,0,0,.55); margin: 0; }
+.campaign-placeholder {
+  height: 160px; border: 1px dashed rgba(0,0,0,.2); border-radius: 12px;
+  display:grid; place-items:center; color: rgba(0,0,0,.55);
+}

@@ -1,0 +1,163 @@
+.pp {
+  padding: 12px 0 28px;
+}
+
+/* topo com chips + busca (igual print) */
+.pp__top {
+  position: sticky;
+  top: 72px;            /* altura do seu navbar */
+  z-index: 50;
+
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+
+  /* evita “dançar” com sombras/blur */
+  transform: none !important;
+}
+
+.pp__chipsWrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pp__chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pp__chip {
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 700;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.pp__chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.pp__chipEmoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pp__chipLabel {
+  font-size: 13px;
+}
+
+.pp__chip.is-active {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border-color: transparent;
+  color: #fff;
+}
+
+.pp__search {
+  width: min(320px, 45vw);
+}
+
+/* header central */
+.pp__header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 26px 16px 10px;
+  text-align: center;
+}
+
+.pp__title {
+  margin-bottom: 8px !important;
+}
+
+.pp__subtitle {
+  max-width: 720px;
+  margin: 0 auto !important;
+  color: rgba(15, 23, 42, 0.70);
+}
+
+/* grid */
+.pp__grid {
+  max-width: 1200px;
+  margin: 0 auto !important;
+  padding: 10px 16px 0;
+}
+
+.pp__card {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(2, 44, 34, 0.10);
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.pp__card.is-featured {
+  box-shadow: 0 22px 60px rgba(34, 197, 94, 0.18);
+}
+
+.pp__media {
+  height: 170px;
+  background: #eafaf3;
+  display: grid;
+  place-items: center;
+}
+
+.pp__icon {
+  width: 78px;
+  height: 78px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.pp__body {
+  padding: 14px 14px 16px;
+}
+
+.pp__tag {
+  border-radius: 999px !important;
+  font-weight: 700;
+}
+
+.pp__cardTitle {
+  margin: 8px 0 4px !important;
+}
+
+.pp__cardDesc {
+  color: rgba(15, 23, 42, 0.68);
+}
+
+.pp__actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pp__btn {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+  border: none !important;
+}
+
+.pp__empty {
+  max-width: 1200px;
+  margin: 18px auto 0;
+  padding: 24px 16px;
+  text-align: center;
+}

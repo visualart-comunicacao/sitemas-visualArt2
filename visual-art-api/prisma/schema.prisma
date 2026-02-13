@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELED
+  SHIPPED
+  DELIVERED
+}
+
+enum OrderType {
+  QUOTE // orçamento
+  SALE // venda/pedido aprovado
+  INTERNAL // ordem interna (ex.: reposição, amostra)
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  REFUNDED
+  CANCELED
+}
+
+enum PricingModel {
+  UNIT // preço fixo por unidade
+  AREA_M2 // preço por m² (banner, adesivo por área)
+  LINEAR_M // preço por metro linear (faixa, lona por comprimento)
+  QUOTE // sob orçamento (sem cálculo automático)
+}
+
+enum DimensionUnit {
+  MM
+  CM
+}
+
+enum PriceModifierType {
+  FIXED_CENTS // soma valor fixo
+  PER_M2_CENTS // soma valor por m²
+  PERCENT // soma percentual sobre base
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+enum CustomerType {
+  PERSON
+  BUSINESS
+}
+
+enum Gender {
+  NOT_INFORMED
+  MALE
+  FEMALE
+  OTHER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  phone     String?
+  document  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+
+  profile CustomerProfile?
+
+  @@index([role])
+}
+
+model Address {
+  id     String @id @default(cuid())
+  userId String
+
+  type      AddressType @default(SHIPPING)
+  isDefault Boolean     @default(false)
+
+  label      String?
+  recipient  String?
+  zipCode    String
+  street     String
+  number     String
+  complement String?
+  district   String
+  city       String
+  state      String
+  reference  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([zipCode])
+  @@index([type])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([name])
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  active      Boolean @default(true)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  pricingModel PricingModel @default(AREA_M2)
+
+  // Dimensões (quando aplicável)
+  dimensionUnit DimensionUnit @default(CM)
+  minWidth      Int?
+  maxWidth      Int?
+  minHeight     Int?
+  maxHeight     Int?
+  step          Int?
+
+  // Regras de cobrança
+  minAreaM2     Float?
+  minPriceCents Int?
+
+  // Base de preço (depende do pricingModel)
+  baseUnitPriceCents    Int?
+  baseM2PriceCents      Int?
+  baseLinearMPriceCents Int?
+
+  images       ProductImage[]
+  optionGroups ProductOptionGroup[]
+  stock        Stock?
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@index([categoryId])
+  @@index([name])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductOptionGroup {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  required  Boolean @default(false)
+  minSelect Int     @default(0)
+  maxSelect Int     @default(1)
+  sortOrder Int     @default(0)
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options ProductOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([sortOrder])
+}
+
+model ProductOption {
+  id        String  @id @default(cuid())
+  groupId   String
+  name      String
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  modifierType  PriceModifierType @default(FIXED_CENTS)
+  modifierValue Int               @default(0)
+
+  group ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@index([active])
+  @@index([sortOrder])
+}
+
+model Stock {
+  id        String @id @default(cuid())
+  productId String @unique
+  quantity  Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id     String @id @default(cuid())
+  userId String
+
+  // ERP
+  code          String        @unique // "ORC-2026-000001" / "PED-2026-000001"
+  type          OrderType     @default(QUOTE)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+
+  // Totais (permitem desconto/frete/imposto depois)
+  subtotalCents Int @default(0)
+  discountCents Int @default(0)
+  shippingCents Int @default(0)
+  taxCents      Int @default(0)
+  totalCents    Int
+
+  notes         String?
+  internalNotes String?
+
+  approvedAt DateTime?
+  canceledAt DateTime?
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+
+  // snapshot do produto
+  name       String
+  priceCents Int
+  quantity   Int
+
+  // configuração escolhida
+  width     Int?
+  height    Int?
+  optionIds String[] @default([])
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model CustomerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  type CustomerType @default(PERSON)
+
+  // PF
+  fullName  String?
+  birthDate DateTime?
+  gender    Gender    @default(NOT_INFORMED)
+
+  // PJ
+  companyName    String?
+  tradeName      String?
+  stateTaxId     String?
+  municipalTaxId String?
+
+  // Docs
+  cpf  String? @unique
+  cnpj String? @unique
+  rg   String?
+
+  // Contato
+  phone2   String?
+  whatsapp Boolean @default(true)
+
+  // LGPD
+  marketingOptIn  Boolean   @default(false)
+  termsAcceptedAt DateTime?
+
+  // Controle
+  notes     String?
+  isBlocked Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([isBlocked])
+}
+
+model Sequence {
+  id    String @id @default(cuid())
+  key   String // "ORC" ou "PED"
+  year  Int
+  value Int    @default(0)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([key, year])
+  @@index([year])
+}

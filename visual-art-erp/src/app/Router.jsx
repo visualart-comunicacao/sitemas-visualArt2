@@ -13,6 +13,8 @@ import QuotesListPage from '@/modules/quotes/pages/QuotesListPage'
 import QuotesEditPage from '@/modules/quotes/pages/QuotesEditPage'
 import ProductEditPage from '../modules/catalog/pages/ProductEditPage'
 import ProductsListPage from '../modules/catalog/pages/ProductslistPage'
+import UsersPage from '../modules/admin/pages/users/UsersPage'
+import ProfilePage from '../modules/admin/pages/profile/Profilepage'
 // Pages (vamos criar agora “placeholder” simples)
 function DashboardPage() {
   return <div>Dashboard</div>
@@ -59,6 +61,22 @@ export default function Router() {
           element={
             <AdminRoute>
               <AdminDashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <UsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/profile"
+          element={
+            <AdminRoute>
+              <ProfilePage />
             </AdminRoute>
           }
         />

@@ -1,10 +1,46 @@
-import React, { useState } from 'react'
-import { Button, Input, Space, Switch, Typography } from 'antd'
-import { SendOutlined, PaperClipOutlined, AudioOutlined } from '@ant-design/icons'
+import React, { useMemo, useState } from 'react'
+import { Button, Input, Popover, Space, Switch, Typography } from 'antd'
+import { SendOutlined, PaperClipOutlined, AudioOutlined, SmileOutlined } from '@ant-design/icons'
 
 const { Text } = Typography
 
-export default function Composer({ onSend, disabled }) {
+const EMOJIS = [
+  '😀',
+  '😁',
+  '😂',
+  '🤣',
+  '😊',
+  '😍',
+  '😎',
+  '🤝',
+  '👍',
+  '🙏',
+  '🔥',
+  '✅',
+  '❤️',
+  '🎉',
+  '📎',
+  '📌',
+]
+
+function EmojiPicker({ onPick }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, padding: 8 }}>
+      {EMOJIS.map((e) => (
+        <button
+          key={e}
+          onClick={() => onPick(e)}
+          style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer' }}
+          type="button"
+        >
+          {e}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export default function Composer({ onSend, onSendImageMock, disabled }) {
   const [text, setText] = useState('')
   const [internalNote, setInternalNote] = useState(false)
 
@@ -15,12 +51,19 @@ export default function Composer({ onSend, disabled }) {
     setText('')
   }
 
+  const emojiContent = useMemo(() => <EmojiPicker onPick={(e) => setText((t) => t + e)} />, [])
+
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
-      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+      <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
         <Space>
-          <PaperClipOutlined />
-          <Text type="secondary">Anexar Arquivo</Text>
+          <Button
+            type="text"
+            icon={<PaperClipOutlined />}
+            onClick={() => onSendImageMock?.()}
+            disabled={disabled}
+          />
+          <Text type="secondary">Anexar (mock)</Text>
         </Space>
 
         <Space>
@@ -30,6 +73,10 @@ export default function Composer({ onSend, disabled }) {
       </Space>
 
       <Space.Compact style={{ width: '100%' }}>
+        <Popover content={emojiContent} trigger="click">
+          <Button icon={<SmileOutlined />} disabled={disabled} />
+        </Popover>
+
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -42,7 +89,8 @@ export default function Composer({ onSend, disabled }) {
           }}
           disabled={disabled}
         />
-        <Button icon={<AudioOutlined />} />
+
+        <Button icon={<AudioOutlined />} disabled={disabled} />
         <Button type="primary" icon={<SendOutlined />} onClick={submit} disabled={disabled}>
           Enviar
         </Button>

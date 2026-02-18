@@ -8,12 +8,26 @@ import ContactInfoPanel from './ContactInfoPanel'
 
 export default function ChatShell({
   user,
+  presenceOptions,
+  onChangePresence,
+
+  agents,
+
   threads,
   activeThreadId,
   onSelectThread,
+
   contact,
+  thread,
+
   messages,
+
   onSendMessage,
+  onSendMockImage,
+
+  onChangeTicket,
+  onTransfer,
+  onShare,
 }) {
   const [showRight, setShowRight] = useState(true)
 
@@ -22,6 +36,8 @@ export default function ChatShell({
       <div className="vc-panel vc-left">
         <LeftSidebar
           user={user}
+          presenceOptions={presenceOptions}
+          onChangePresence={onChangePresence}
           threads={threads}
           activeThreadId={activeThreadId}
           onSelectThread={onSelectThread}
@@ -30,7 +46,15 @@ export default function ChatShell({
 
       <div className="vc-panel vc-center">
         <div className="vc-chat-header">
-          <ChatHeader contact={contact} onToggleRight={() => setShowRight((v) => !v)} />
+          <ChatHeader
+            contact={contact}
+            thread={thread}
+            agents={agents}
+            onChangeTicket={onChangeTicket}
+            onTransfer={onTransfer}
+            onShare={onShare}
+            onToggleRight={() => setShowRight((v) => !v)}
+          />
         </div>
 
         <div className="vc-messages">
@@ -38,7 +62,11 @@ export default function ChatShell({
         </div>
 
         <div className="vc-composer">
-          <Composer onSend={onSendMessage} disabled={!activeThreadId} />
+          <Composer
+            onSend={onSendMessage}
+            onSendImageMock={onSendMockImage}
+            disabled={!activeThreadId}
+          />
         </div>
       </div>
 

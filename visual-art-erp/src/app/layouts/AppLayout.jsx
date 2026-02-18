@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Layout, Menu, Button, Typography, Dropdown, Badge, Avatar, Divider } from 'antd'
+import { Layout, Menu, Button, Typography, Badge, Avatar } from 'antd'
 import {
   HomeOutlined,
   TeamOutlined,
@@ -22,21 +22,29 @@ import '../../shared/styles/responsive.css'
 dayjs.locale('pt-br')
 
 const { Header, Sider, Content } = Layout
-const { Text, Title } = Typography
+const { Text } = Typography
 
 function useSelectedKey() {
   const { pathname } = useLocation()
+
   if (pathname.startsWith('/customers')) return 'customers'
   if (pathname.startsWith('/catalog')) return 'catalog'
+  if (pathname.startsWith('/quotes')) return 'quotes'
   if (pathname.startsWith('/orders')) return 'orders'
-  if (pathname.startsWith('/admin')) return 'admin'
   if (pathname.startsWith('/visual-chat')) return 'visual-chat'
-  if (pathname.startsWith('/quotes')) return 'orders' // ou 'quotes'
+
+  // Admin dropdown
+  if (pathname.startsWith('/admin/users')) return 'admin-users'
+  if (pathname.startsWith('/admin/groups')) return 'admin-groups'
+  if (pathname.startsWith('/admin/permissions')) return 'admin-permissions'
+  if (pathname.startsWith('/admin')) return 'admin'
+
   return 'dashboard'
 }
 
 export default function AppLayout() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const selected = useSelectedKey()
   const { user, logout, isAdmin } = useAuth()
 
@@ -47,6 +55,18 @@ export default function AppLayout() {
     const t = setInterval(() => setNow(dayjs()), 1000)
     return () => clearInterval(t)
   }, [])
+
+  // ✅ abre submenu admin quando estiver em /admin/*
+  const [openKeys, setOpenKeys] = useState(() => {
+    return pathname.startsWith('/admin') ? ['admin'] : []
+  })
+
+  useEffect(() => {
+    // se entrar em /admin/*, garante o submenu aberto
+    if (pathname.startsWith('/admin')) {
+      setOpenKeys((prev) => (prev.includes('admin') ? prev : ['admin']))
+    }
+  }, [pathname])
 
   const menuItems = useMemo(() => {
     const base = [
@@ -69,7 +89,7 @@ export default function AppLayout() {
         onClick: () => navigate('/catalog/products'),
       },
       {
-        key: 'orders',
+        key: 'quotes',
         icon: <FileTextOutlined />,
         label: 'Orçamentos',
         onClick: () => navigate('/quotes'),
@@ -87,133 +107,160 @@ export default function AppLayout() {
         key: 'admin',
         icon: <SettingOutlined />,
         label: 'Admin',
-        onClick: () => navigate('/admin'),
+        children: [
+          {
+            key: 'admin-users',
+            icon: <UserOutlined />,
+            label: 'Usuários',
+            onClick: () => navigate('/admin/users'),
+          },
+          {
+            key: 'admin-groups',
+            icon: <TeamOutlined />,
+            label: 'Grupos',
+            onClick: () => navigate('/admin/groups'),
+          },
+          {
+            key: 'admin-permissions',
+            icon: <SettingOutlined />,
+            label: 'Permissões',
+            onClick: () => navigate('/admin/permissions'),
+          },
+        ],
       })
     }
 
     return base
   }, [navigate, isAdmin])
 
-  // Notificações mock (depois ligamos na API)
-  const notifications = [
-    { id: 'n1', title: 'Novo pedido aprovado', desc: 'PED-2026-000012' },
-    { id: 'n2', title: 'Estoque baixo', desc: 'Produto: Adesivo Vinil' },
-  ]
-
-  const notificationsMenu = {
-    items: [
-      { key: 'header', label: <Text strong>Notificações</Text>, disabled: true },
-      ...notifications.map((n) => ({
-        key: n.id,
-        label: (
-          <div style={{ width: 260 }}>
-            <div style={{ fontWeight: 600 }}>{n.title}</div>
-            <div style={{ opacity: 0.7, fontSize: 12 }}>{n.desc}</div>
-          </div>
-        ),
-      })),
-      { type: 'divider' },
-      {
-        key: 'all',
-        label: <Text>Ver todas</Text>,
-        onClick: () => navigate('/orders'),
-      },
-    ],
-  }
-
-  const userMenu = {
-    items: [
-      {
-        key: 'profile',
-        label: 'Meu perfil',
-        onClick: () => navigate('/profile'),
-        disabled: true, // habilitamos quando criarmos a tela
-      },
-      { type: 'divider' },
-      {
-        key: 'logout',
-        label: 'Sair',
-        icon: <LogoutOutlined />,
-        onClick: logout,
-      },
-    ],
-  }
-
   const pageTitle = useMemo(() => {
     if (selected === 'dashboard') return 'Dashboard'
     if (selected === 'customers') return 'Clientes'
     if (selected === 'catalog') return 'Catálogo'
+    if (selected === 'quotes') return 'Orçamentos'
     if (selected === 'orders') return 'Orçamentos e Pedidos'
-    if (selected === 'admin') return 'Admin'
+    if (selected === 'admin' || selected.startsWith('admin-')) return 'Admin'
     if (selected === 'visual-chat') return 'Visual Chat'
     return 'ERP'
   }, [selected])
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* ✅ SIDEBAR COM GRADIENTE */}
       <Sider
         width={240}
-        theme="light"
+        theme="dark"
         collapsible
         collapsed={collapsed}
         trigger={null}
         style={{
-          background: '#fff',
-          borderRight: '1px solid #E6ECE9',
-          padding: 12,
+          background: 'linear-gradient(180deg, #0F3D2E 0%, #066C47 60%, #00A859 100%)',
+          padding: '16px 12px',
+          boxShadow: '4px 0 20px rgba(0,0,0,0.08)',
         }}
       >
-        {/* TOPO: Logo + ícones */}
+        {/* TOPO: LOGO */}
         <div
           style={{
-            height: 56,
+            height: 72,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 8px',
-            marginBottom: 10,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            padding: '8px 8px',
+            marginBottom: 12,
+            gap: 12,
           }}
         >
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 12,
-                background: 'rgba(0,168,89,0.10)',
-                border: '1px solid rgba(0,168,89,0.18)',
-                display: 'grid',
-                placeItems: 'center',
-                fontWeight: 900,
-                color: '#066C47',
-              }}
-            >
-              Visual Art
-            </div>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              display: 'grid',
+              placeItems: 'center',
+              fontWeight: 900,
+              color: '#fff',
+              letterSpacing: 0.2,
+              userSelect: 'none',
+            }}
+          >
+            VA
           </div>
 
-          {/* Ícones */}
           {!collapsed && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Button type="text" icon={<UserOutlined />} />
-              <Button type="text" icon={<BellOutlined />} />
-              <Button type="text" icon={<LogoutOutlined />} onClick={logout} />
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontWeight: 800, color: '#fff' }}>Visual Art</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>ERP</span>
             </div>
           )}
         </div>
 
         {/* MENU */}
         <Menu
+          className="va-sider-menu"
           mode="inline"
           selectedKeys={[selected]}
+          openKeys={openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys)}
           items={menuItems}
+          theme="dark"
+          inlineIndent={18}
           style={{
             borderRight: 0,
             background: 'transparent',
             paddingTop: 6,
           }}
         />
+
+        {/* RODAPÉ DO SIDER */}
+        <div
+          style={{
+            marginTop: 'auto',
+            paddingTop: 12,
+          }}
+        >
+          <div
+            style={{
+              borderTop: '1px solid rgba(255,255,255,0.12)',
+              paddingTop: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'space-between',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Avatar size="small" icon={<UserOutlined />} />
+              {!collapsed && (
+                <div style={{ lineHeight: 1.1 }}>
+                  <div style={{ color: '#fff', fontWeight: 600, fontSize: 12 }}>
+                    {user?.name || 'Usuário'}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>
+                    {user?.role === 'ADMIN' ? 'Administrador' : 'Usuário'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!collapsed && (
+              <Button
+                size="small"
+                onClick={logout}
+                icon={<LogoutOutlined />}
+                style={{
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  color: '#fff',
+                }}
+              >
+                Sair
+              </Button>
+            )}
+          </div>
+        </div>
       </Sider>
 
       <Layout>
@@ -227,7 +274,7 @@ export default function AppLayout() {
             height: 64,
             borderBottom: '1px solid #DCE9E3',
             borderTop: '4px solid #00A859',
-            backdropFilter: 'blur(10px)',
+            background: '#fff',
           }}
         >
           {/* LADO ESQUERDO */}
@@ -237,11 +284,10 @@ export default function AppLayout() {
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed((v) => !v)}
             />
-
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
               <span style={{ fontWeight: 600 }}>{pageTitle}</span>
               <span style={{ fontSize: 12, opacity: 0.6 }}>
-                {dayjs().format('dddd, DD [de] MMMM [de] YYYY')}
+                {now.format('dddd, DD [de] MMMM [de] YYYY')}
               </span>
             </div>
           </div>
@@ -252,13 +298,7 @@ export default function AppLayout() {
               <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
             </Badge>
 
-            <div
-              style={{
-                width: 1,
-                height: 28,
-                background: '#E6ECE9',
-              }}
-            />
+            <div style={{ width: 1, height: 28, background: '#E6ECE9' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Avatar size="small" icon={<UserOutlined />} />
@@ -268,6 +308,13 @@ export default function AppLayout() {
                   {user?.role === 'ADMIN' ? 'Administrador' : 'Usuário'}
                 </div>
               </div>
+
+              <Button
+                type="text"
+                icon={<UserOutlined />}
+                onClick={() => navigate('/admin/profile')}
+              />
+              <Button type="text" icon={<LogoutOutlined />} onClick={logout} />
             </div>
           </div>
         </Header>
@@ -282,8 +329,8 @@ export default function AppLayout() {
               padding: 16,
               minHeight: 'calc(100vh - 64px - 32px)',
               boxShadow: '0 10px 28px rgba(6,108,71,0.06)',
-              minWidth: 0, // ✅ permite o conteúdo encolher
-              overflow: 'hidden', // ✅ evita “vazar” horizontal
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             <Outlet />

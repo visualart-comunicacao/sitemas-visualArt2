@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useMemo, useState } from 'react'
 import { message } from 'antd'
 import { authStorage } from './auth.storage'
@@ -28,8 +29,6 @@ export function AuthProvider({ children }) {
     if (!accessToken || !userData) {
       throw new Error('Resposta de login inválida: esperado accessToken/token e user')
     }
-
-    console.log('Login bem-sucedido, dados recebidos:', { accessToken, userData })
 
     authStorage.setToken(accessToken)
     authStorage.setUser(userData)

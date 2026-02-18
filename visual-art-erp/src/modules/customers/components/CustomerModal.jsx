@@ -241,8 +241,10 @@ export default function CustomerModal({ open, mode, customerId, onClose, onSucce
       title={title}
       onCancel={onClose}
       width={980}
-      destroyOnClose
-      maskClosable={false}
+      destroyOnHidden
+      mask={{
+        closable: false,
+      }}
       footer={
         <Space>
           <Button onClick={onClose}>Cancelar</Button>

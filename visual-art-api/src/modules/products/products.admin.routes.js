@@ -9,9 +9,13 @@ import {
   GroupAddOptionSchema,
   StockUpdateSchema,
 } from './products.schemas.js';
+import { ProductsAdminController } from './products.admin.controller.js';
+import { AdminProductsListSchema, AdminProductGetByIdSchema } from './products.admin.schemas.js';
 
 export const router = Router();
 
+router.get('/products', validate(AdminProductsListSchema), ProductsAdminController.list);
+router.get('/products/:id', validate(AdminProductGetByIdSchema), ProductsAdminController.getById);
 router.post('/products', validate(ProductCreateSchema), ProductsController.create);
 router.patch('/products/:id', validate(ProductUpdateSchema), ProductsController.update);
 

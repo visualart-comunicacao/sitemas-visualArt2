@@ -4,6 +4,17 @@ const PricingModel = z.enum(['UNIT', 'AREA_M2', 'LINEAR_M', 'QUOTE']);
 const DimensionUnit = z.enum(['MM', 'CM']);
 const PriceModifierType = z.enum(['FIXED_CENTS', 'PER_M2_CENTS', 'PERCENT']);
 
+const UrlOrUploadPath = z
+  .string()
+  .min(1)
+  .refine(
+    (v) =>
+      v.startsWith('/uploads/') ||
+      v.startsWith('http://') ||
+      v.startsWith('https://'),
+    'Invalid url'
+  );
+
 export const ProductsListQuerySchema = z.object({
   query: z.object({
     search: z.string().optional(),
@@ -51,8 +62,10 @@ export const ProductBySlugParamSchema = z.object({
 export const ProductAddImageSchema = z.object({
   params: z.object({ productId: z.string().min(1) }),
   body: z.object({
-    url: z.string().url(),
+    url: UrlOrUploadPath,
     alt: z.string().optional(),
+    isCover: z.boolean().optional(),
+    sortOrder: z.number().int().min(0).optional(),
   }),
 });
 
